@@ -19,6 +19,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function PushManager() {
 	const [isSubscribed, setIsSubscribed] = useState(false);
 	const [statusMessage, setStatusMessage] = useState("");
+	const [debugLog, setDebugLog] = useState("");
 	const [broadcastMessage, setBroadcastMessage] = useState("");
 	const [deviceOS, setDeviceOS] = useState<"ios" | "android" | "other">("other");
 
@@ -28,21 +29,23 @@ export function PushManager() {
 		else if (/android/.test(userAgent)) setDeviceOS("android");
 
 		if ("serviceWorker" in navigator && "PushManager" in window) {
-			navigator.serviceWorker.ready.then((registration) => {
+			// Manually explicitly register the SW instead of waiting for next-pwa to inject it
+			navigator.serviceWorker.register("/sw.js").then((registration) => {
+				setDebugLog(prev => prev + `\nSW Registered! Scope: ${registration.scope}`);
+				
 				registration.pushManager.getSubscription().then((subscription) => {
 					setIsSubscribed(subscription !== null);
+					setDebugLog(prev => prev + `\nInit check: Sub exists? ${!!subscription}`);
 					
-					// Auto-heal: If the browser is subscribed but the Coolify server restarted
-					// and lost the token in the past, silently re-register it to the new SQLite DB.
 					if (subscription) {
 						fetch("/api/web-push", {
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
 							body: JSON.stringify(subscription),
-						}).catch(console.error);
+						}).catch(err => setDebugLog(prev => prev + `\nSync Error: ${err.message}`));
 					}
-				});
-			});
+				}).catch(err => setDebugLog(prev => prev + `\nGetSub Error: ${err.message}`));
+			}).catch(err => setDebugLog(prev => prev + `\nFailed to register SW: ${err.message}`));
 		}
 	}, []);
 
@@ -53,18 +56,25 @@ export function PushManager() {
 		}
 
 		try {
+			setDebugLog("Requesting permissions...");
 			const permission = await Notification.requestPermission();
+			setDebugLog(prev => prev + `\nPermission result: ${permission}`);
+			
 			if (permission !== "granted") {
 				setStatusMessage("Permission for notifications was denied.");
 				return;
 			}
 
-			const registration = await navigator.serviceWorker.ready;
+			setDebugLog(prev => prev + `\nFetching Service Worker explicitly...`);
+			const registration = await navigator.serviceWorker.register('/sw.js');
+			await navigator.serviceWorker.ready;
+			setDebugLog(prev => prev + `\nSW Ready! Trying to subscribe...`);
 
 			const subscription = await registration.pushManager.subscribe({
 				userVisibleOnly: true,
 				applicationServerKey: urlBase64ToUint8Array(env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
 			});
+			setDebugLog(prev => prev + `\nSubscribed locally! Sending to server...`);
 
 			const response = await fetch("/api/web-push", {
 				method: "POST",
@@ -73,6 +83,8 @@ export function PushManager() {
 				},
 				body: JSON.stringify(subscription),
 			});
+			
+			setDebugLog(prev => prev + `\nServer response status: ${response.status}`);
 
 			if (response.ok) {
 				setIsSubscribed(true);
@@ -84,8 +96,9 @@ export function PushManager() {
 			} else {
 				setStatusMessage("Failed to save subscription on the server.");
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error("Error subscribing:", error);
+			setDebugLog(prev => prev + `\nCRITICAL ERROR: ${error?.message || String(error)}`);
 			setStatusMessage("Error subscribing to notifications.");
 		}
 	};
@@ -114,6 +127,12 @@ export function PushManager() {
 				</button>
 				{statusMessage && (
 					<p className="mt-4 text-sm tracking-wide text-white/80">{statusMessage}</p>
+				)}
+				
+				{debugLog && (
+					<pre className="mt-4 p-4 text-left text-xs bg-black/50 text-green-400 rounded-lg w-full overflow-x-auto">
+						{debugLog}
+					</pre>
 				)}
 
 				{isSubscribed && (
