@@ -31,6 +31,16 @@ export function PushManager() {
 			navigator.serviceWorker.ready.then((registration) => {
 				registration.pushManager.getSubscription().then((subscription) => {
 					setIsSubscribed(subscription !== null);
+					
+					// Auto-heal: If the browser is subscribed but the Coolify server restarted
+					// and lost the token in the past, silently re-register it to the new SQLite DB.
+					if (subscription) {
+						fetch("/api/web-push", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(subscription),
+						}).catch(console.error);
+					}
 				});
 			});
 		}
