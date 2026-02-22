@@ -13,6 +13,7 @@ const withPWA = withPWAInit({
   disable: false,
   workboxOptions: {
     disableDevLogs: true,
+    importScripts: ["/custom-sw.js"],
   },
 });
 
