@@ -1,53 +1,27 @@
-import Link from "next/link";
+import { PushManager } from "@/app/_components/PushManager";
 
-import { LatestPost } from "@/app/_components/post";
-import { api, HydrateClient } from "@/trpc/server";
-
-export default async function Home() {
-	const hello = await api.post.hello({ text: "from tRPC" });
-
-	void api.post.getLatest.prefetch();
-
+export default function Home() {
 	return (
-		<HydrateClient>
-			<main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-				<div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-					<h1 className="font-extrabold text-5xl tracking-tight sm:text-[5rem]">
-						Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-					</h1>
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-						<Link
-							className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-							href="https://create.t3.gg/en/usage/first-steps"
-							target="_blank"
-						>
-							<h3 className="font-bold text-2xl">First Steps →</h3>
-							<div className="text-lg">
-								Just the basics - Everything you need to know to set up your
-								database and authentication.
-							</div>
-						</Link>
-						<Link
-							className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-							href="https://create.t3.gg/en/introduction"
-							target="_blank"
-						>
-							<h3 className="font-bold text-2xl">Documentation →</h3>
-							<div className="text-lg">
-								Learn more about Create T3 App, the libraries it uses, and how
-								to deploy it.
-							</div>
-						</Link>
-					</div>
-					<div className="flex flex-col items-center gap-2">
-						<p className="text-2xl text-white">
-							{hello ? hello.greeting : "Loading tRPC query..."}
-						</p>
-					</div>
+		<main className="flex min-h-screen flex-col items-center justify-start bg-[#0f172a] text-white pt-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+			{/* Dynamic Background Elements */}
+			<div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/30 rounded-full blur-[120px] pointer-events-none" />
+			<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+			<div className="absolute top-[30%] left-[20%] w-[30%] h-[30%] bg-yellow-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-					<LatestPost />
-				</div>
-			</main>
-		</HydrateClient>
+			<div className="z-10 flex flex-col items-center w-full">
+				<h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-center mb-6 drop-shadow-lg">
+					Notify<span className="text-transparent bg-clip-text bg-linear-to-br from-yellow-300 to-orange-500">Test</span>
+				</h1>
+				<p className="text-lg md:text-2xl text-slate-300 text-center max-w-2xl leading-relaxed mb-4">
+					Experience the future of the web. Install this app anywhere and receive hourly moments of joy.
+				</p>
+
+				<PushManager />
+			</div>
+			
+			<div className="mt-auto py-8 text-slate-500 text-sm z-10 w-full text-center">
+				A PWA and Web Push demonstration.
+			</div>
+		</main>
 	);
 }
